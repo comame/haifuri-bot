@@ -16,10 +16,10 @@ var GUILD_ID = os.Getenv("GUILD_ID")
 var PUBLIC_KEY = os.Getenv("PUBLIC_KEY")
 var BOT_TOKEN = os.Getenv("BOT_TOKEN")
 
-var GUILD_COMMANDS_URL = fmt.Sprintf("https://discord.com/api/v10/applications/%s/guilds/%s/commands", APPLICATION_ID, GUILD_ID)
+var COMMANDS_URL = fmt.Sprintf("https://discord.com/api/v10/applications/%s/commands", APPLICATION_ID)
 
 func checkEnv() {
-	if APPLICATION_ID == "" || GUILD_ID == "" || PUBLIC_KEY == "" || BOT_TOKEN == "" || GUILD_COMMANDS_URL == "" {
+	if APPLICATION_ID == "" || GUILD_ID == "" || PUBLIC_KEY == "" || BOT_TOKEN == "" {
 		panic("env not present")
 	}
 }
@@ -32,7 +32,7 @@ func makeCommandApi(command *Commands) {
 
 	bodyReader := strings.NewReader(string(body))
 
-	req, _ := http.NewRequest("POST", GUILD_COMMANDS_URL, bodyReader)
+	req, _ := http.NewRequest("POST", COMMANDS_URL, bodyReader)
 	req.Header.Set("authorization", fmt.Sprintf("Bot %s", BOT_TOKEN))
 	req.Header.Set("content-type", "application/json")
 
@@ -41,12 +41,12 @@ func makeCommandApi(command *Commands) {
 		panic(err)
 	}
 
-	_, err = io.ReadAll(res.Body)
+	resStr, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
 	}
 
-	// fmt.Println(string(resStr))
+	fmt.Println(string(resStr))
 }
 
 func makeCommand() {
@@ -90,7 +90,7 @@ func shuffledHaifuri() string {
 	first := chars[0]
 	end := chars[len(chars)-1]
 
-	for first == '・' || first == 'ー' || end == '・' || end == 'ー' {
+	for first == '・' || first == 'ー' || end == '・' {
 		rand.Shuffle(len(chars), func(i, j int) {
 			tmp := chars[i]
 			chars[i] = chars[j]
