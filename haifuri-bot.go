@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 var APPLICATION_ID = os.Getenv("APPLICATION_ID")
@@ -58,60 +58,54 @@ func makeCommand() {
 	makeCommandApi(&command)
 }
 
-var diags = []string{
-	"海に生き",
-	"海を守り",
-	"海を往く",
-	"それがブルーマーメイド！",
-	"海の仲間は、家族だから",
-	"艦長、私はあなたのマヨネーズになる！",
-	":muscle:ハイスクール・コマンドー:muscle:",
-	":tada:ハイスクール・フリート:tada:",
-	"ん、私ともあっちむいてホイをやるべき",
-	"行こう行こう、いつも先を急ぐ。⊂二二⌒°( ＾ω＾)°⌒二二⊃ そしてある日死ぬ。",
+// [min, max] の範囲でランダムな整数を返す
+func randomInt(min, max int) int {
+	return rand.Intn(max-min+1) + min
 }
 
-func shuffledHaifuri() string {
-	percent := rand.Int31n(100)
-	if percent < 10 {
-		i := rand.Int31n(int32(len(diags)))
-		return diags[i]
-	}
-
-	original := "ハイスクール・フリート"
-	chars := []rune(original)
-
-	rand.Shuffle(len(chars), func(i, j int) {
-		tmp := chars[i]
-		chars[i] = chars[j]
-		chars[j] = tmp
+func shuffleHaifuri() string {
+	// カタカナ8文字をシャッフル
+	var shuffledKatakana = []rune("ハイスクルフリト")
+	rand.Shuffle(len(shuffledKatakana), func(i, j int) {
+		shuffledKatakana[i], shuffledKatakana[j] = shuffledKatakana[j], shuffledKatakana[i]
 	})
 
-	first := chars[0]
-	end := chars[len(chars)-1]
+	// 丸の位置を決める (カタカナの間に入る)
+	var dotPos = randomInt(1, 6)
 
-	for first == '・' || first == 'ー' || end == '・' {
-		rand.Shuffle(len(chars), func(i, j int) {
-			tmp := chars[i]
-			chars[i] = chars[j]
-			chars[j] = tmp
-		})
-
-		first = chars[0]
-		end = chars[len(chars)-1]
+	// 伸ばし棒をつけるカタカナを8文字から2つ選ぶ
+	var firstHyphenPos int
+	var secondHyphenPos int
+	for firstHyphenPos == secondHyphenPos {
+		firstHyphenPos = randomInt(0, 7)
+		secondHyphenPos = randomInt(0, 7)
 	}
 
-	if string(chars) == "ハイスクール・フリート" {
-		return ":tada:" + string(chars) + ":tada:"
+	var result string
+	// 組み立て
+	for i := 0; i <= 7; i++ {
+		if i == dotPos {
+			result += "・"
+		}
+		result += string(shuffledKatakana[i])
+		if firstHyphenPos == i || secondHyphenPos == i {
+			result += "ー"
+		}
 	}
 
-	return string(chars)
+	// 一致したらお祝い
+	if result == "ハイスクール・フリート" {
+		return ":tada:" + result + ":tada:"
+	}
+
+	return result
 }
 
 func main() {
+	log.Println("Built 222643")
+
 	checkEnv()
 
-	rand.Seed(time.Now().UnixNano())
 	makeCommand()
 
 	http.HandleFunc("/high-school-fleet/interactions", func(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +142,7 @@ func main() {
 			res = InteractionResponse{
 				Type: 4,
 				Data: map[string]interface{}{
-					"content": shuffledHaifuri(),
+					"content": shuffleHaifuri(),
 				},
 			}
 		default:
@@ -166,7 +160,7 @@ func main() {
 		println(string(resStr))
 
 		w.Header().Add("content-type", "application/json")
-		fmt.Fprintf(w, string(resStr))
+		fmt.Fprintln(w, string(resStr))
 	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		println("not found")
